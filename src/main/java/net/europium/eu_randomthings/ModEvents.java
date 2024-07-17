@@ -1,16 +1,26 @@
 package net.europium.eu_randomthings;
 
 import net.europium.eu_randomthings.blocks.StickBlock;
+import net.europium.eu_randomthings.muiltblocks.CraftingTableShape;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.util.ParticleUtils;
+import net.minecraft.util.valueproviders.ClampedInt;
+import net.minecraft.util.valueproviders.ConstantInt;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.entity.projectile.Snowball;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -18,20 +28,31 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.common.util.TriState;
+import net.neoforged.neoforge.client.event.RecipesUpdatedEvent;
+import net.neoforged.neoforge.common.CommonHooks;
 import net.neoforged.neoforge.event.entity.ProjectileImpactEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
+import org.jetbrains.annotations.NotNull;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 
 @EventBusSubscriber(modid = RandomThings.MODID)
 public class ModEvents {
-    public static final List<Block> woods = List.of(
+    public static final List<Block> LOGS = List.of(
             Blocks.ACACIA_LOG, Blocks.BIRCH_LOG,
             Blocks.CHERRY_LOG, Blocks.JUNGLE_LOG,
             Blocks.MANGROVE_LOG, Blocks.DARK_OAK_LOG,
             Blocks.SPRUCE_LOG, Blocks.OAK_LOG);
+
+    public static final List<Block> PLANKS = List.of(
+            Blocks.ACACIA_PLANKS, Blocks.BIRCH_PLANKS,
+            Blocks.CHERRY_PLANKS, Blocks.JUNGLE_PLANKS,
+            Blocks.MANGROVE_PLANKS, Blocks.DARK_OAK_PLANKS,
+            Blocks.SPRUCE_PLANKS, Blocks.OAK_PLANKS);
+
     @SubscribeEvent
     public static void placeStickBlock(PlayerInteractEvent.RightClickBlock event) {
         Item i = event.getItemStack().getItem();
@@ -42,10 +63,10 @@ public class ModEvents {
         if (i == Items.STICK) {
             BlockState blockState = level.getBlockState(pos);
             if (blockState.getBlock() == Blocks.FIRE) return;
-            if (blockState.getBlock() != Register.STICK_BLOCK.get()){
+            if (blockState.getBlock() != Register.STICK_BLOCK.get()) {
                 if (!level.isClientSide()) {
                     level.setBlock(pos1, Register.STICK_BLOCK.get().defaultBlockState(), 1);
-                } else{
+                } else {
                     player.playSound(SoundEvents.WOOD_PLACE);
                     player.swing(event.getHand());
                 }
@@ -59,10 +80,10 @@ public class ModEvents {
                     level.setBlock(pos, Blocks.FIRE.defaultBlockState(), 1);
                     player.playSound(SoundEvents.FIRECHARGE_USE);
                 }
-                if(!level.isClientSide) {
+                if (!level.isClientSide) {
                     event.setCancellationResult(InteractionResult.SUCCESS);
                     player.getItemInHand(event.getHand()).consume(1, player);
-                }else player.swing(event.getHand());
+                } else player.swing(event.getHand());
             }
         }
     }
@@ -73,7 +94,7 @@ public class ModEvents {
         Block block = event.getState().getBlock();
 
         if (!event.getLevel().isClientSide()) {
-            for (Block wood : woods) {
+            for (Block wood : LOGS) {
                 if (block == wood) {
                     event.setCanceled(true);
                     event.getPlayer().playSound(SoundEvents.ITEM_BREAK);
@@ -101,16 +122,26 @@ public class ModEvents {
                         int z1 = z + k;
                         BlockPos pos = new BlockPos(x1, y1, z1);
                         Block block = level.getBlockState(pos).getBlock();
-                        if(woods.contains(block)) level.destroyBlock(pos, true);
+                        if (LOGS.contains(block)) level.destroyBlock(pos, true);
                     }
                 }
             }
         }
     }
 
-    public static void onPlankPlace(BlockEvent.EntityPlaceEvent event){
-        Block block = event.getPlacedBlock().getBlock();
-        if(block == Blocks.ACACIA_PLANKS){
+    @SubscribeEvent
+    public static void onPlankPlace(BlockEvent.EntityPlaceEvent event) {
+        Entity entity = event.getEntity();
+        BlockPos pos = event.getPos();
+        Level level = Objects.requireNonNull(entity).level();
+        CraftingTableShape shape = new CraftingTableShape(level, pos);
+        if (shape.checkStructure()) {
+            ParticleUtils.spawnParticles(level,
+                    CraftingTableShape.posMove(pos, new BlockPos(0, 1, 0))
+                    , 100, 0, 0, true,
+                    ParticleTypes.GLOW);
+            level.setBlock(pos, Blocks.CRAFTING_TABLE.defaultBlockState(), 2);
+            shape.cleanOldBlocks();
 
         }
     }
