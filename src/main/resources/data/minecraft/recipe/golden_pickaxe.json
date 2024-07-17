@@ -17,5 +17,10 @@
   "result": {
     "count": 1,
     "id": "minecraft:golden_pickaxe"
-  }
+  },
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:false"
+    }
+  ]
 }

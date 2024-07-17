@@ -17,5 +17,10 @@
   "result": {
     "count": 1,
     "id": "minecraft:wooden_pickaxe"
-  }
+  },
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:false"
+    }
+  ]
 }
