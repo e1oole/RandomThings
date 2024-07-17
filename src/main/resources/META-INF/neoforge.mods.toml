@@ -7,6 +7,9 @@ version="${mod_version}"
 displayName="${mod_name}"
 authors="${mod_authors}" #optional
 description='''${mod_description}'''
+# The [[mixins]] block allows you to declare your mixin config to FML so that it gets loaded.
+[[mixins]]
+config="${mod_id}.mixins.json"
 [[dependencies.${mod_id}]]
     modId="neoforge"
     type="required"
